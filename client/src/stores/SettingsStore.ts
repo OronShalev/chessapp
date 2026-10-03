@@ -46,7 +46,7 @@ export const defaultSettings: Settings = {
     analysis: {
         engine: {
             enabled: true,
-            version: EngineVersion.STOCKFISH_17_LITE,
+            version: EngineVersion.STOCKFISH_19_LITE,
             depth: 16,
             lines: 2,
             timeLimitEnabled: false,
