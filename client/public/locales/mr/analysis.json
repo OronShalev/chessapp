@@ -46,13 +46,8 @@
     },
     "progressReporter": {
         "evaluating": "मूल्यांकन करत आहोत...",
-        "awaitingCaptcha": "आम्ही CAPTCHA सोडवत आहोत.",
         "classifying": "वर्गीकरण...",
         "evaluatingTooltip": "जर याला थोडा वेळ लागला तर आपण सेटिंग्जमध्ये इंजिनची खोली कमी करण्याचा प्रयत्न करू शकता.",
-        "captchaTooltip": "यासाठी काही सेकंद लागू शकतात...",
-        "captchaVerifyFailed": "कॅप्चाची पडताळणी करता आली नाही; पृष्ठ ताजे करण्याचा प्रयत्न करा.",
-        "captchaLoadFailed": "CAPTCHA उघडता येत नाही. तुमचा ब्राउझर शक्यतो जुना आहे.",
-        "captchaUnknownError": "काहीतरी CAPTCHA चूक झाली आहे; वेबपृष्ठ ताजं करण्याचा प्रयत्न करा.",
         "completeNotification": "विश्लेषण पूर्ण"
     },
     "analysisTabBar": {

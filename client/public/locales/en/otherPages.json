@@ -7,15 +7,6 @@
         "deleteConfirm": "Are you sure you want to delete {{amount}} game(s)? This action is irreversible.",
         "error": "An unknown error occurred while trying to load your game archive."
     },
-    "news": {
-        "title": "Newspaper",
-        "titleDescription": "Get the latest updates on the WintrChess platform",
-        "error": "There was an error while loading the newspaper.",
-        "article": {
-            "unfound": "We couldn't find this article.",
-            "error": "There was an error while loading this article."
-        }
-    },
     "signIn": {
         "loginTitle": "Sign in to your account",
         "loginButtonGoogle": "Sign in with Google",

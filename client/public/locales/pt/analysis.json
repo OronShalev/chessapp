@@ -80,13 +80,8 @@
     },
     "progressReporter": {
         "evaluating": "Avaliando...",
-        "awaitingCaptcha": "Resolvendo o CAPTCHA...",
         "classifying": "Classificando...",
         "evaluatingTooltip": "Se isso demorar um pouco, tente reduzir a profundidade do motor nas configurações.",
-        "captchaTooltip": "Isto pode demorar alguns segundos...",
-        "captchaVerifyFailed": "Não foi possível verificar o CAPTCHA; tente atualizar a página.",
-        "captchaLoadFailed": "Não foi possível carregar o CAPTCHA. Seu navegador provavelmente está desatualizado.",
-        "captchaUnknownError": "Erro CAPTCHA desconhecido; tente atualizar a página.",
         "completeNotification": "Análise completa"
     },
     "analysisTabBar": {

@@ -91,13 +91,8 @@
     },
     "progressReporter": {
         "evaluating": "Đang đánh giá...",
-        "awaitingCaptcha": "Đang giải CAPTCHA...",
         "classifying": "Đang phân loại nước đi...",
         "evaluatingTooltip": "Nếu việc này tốn nhiều thời gian, bạn có thể giảm độ sâu của máy trong cài đặt.",
-        "captchaTooltip": "Việc này có thể tốn vài giây...",
-        "captchaVerifyFailed": "Không thể xác minh CAPTCHA; hãy thử tải lại trang.",
-        "captchaLoadFailed": "Không thể tại CAPTCHA. Trình duyệt của bạn có thể đã lỗi thời.",
-        "captchaUnknownError": "Lỗi CAPTCHA không rõ; hãy thử tải lại trang.",
         "reportFailed": "Có một vấn đề đã xảy ra trong khi đang tạo ra báo cáo ván cờ; hảy thử tải lại trang.",
         "completeNotification": "Phân tích hoàn tất"
     },

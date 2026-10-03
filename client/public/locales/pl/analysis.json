@@ -44,13 +44,8 @@
     },
     "progressReporter": {
         "evaluating": "Ocenianie...",
-        "awaitingCaptcha": "Rozwiązywanie CAPTCHA...",
         "classifying": "Klasyfikowanie...",
         "evaluatingTooltip": "Jeśli to zajmuje trochę czasu, możesz spróbować obniżyć głębokość silnika w ustawieniach.",
-        "captchaTooltip": "To może potrwać kilka sekund...",
-        "captchaVerifyFailed": "Nie udało się zweryfikować CAPTCHA; spróbuj odświeżyć stronę.",
-        "captchaLoadFailed": "Nie udało się załadować CAPTCHA. Twoja przeglądarka jest prawdopodobnie nieaktualna.",
-        "captchaUnknownError": "Nieznany błąd CAPTCHA; spróbuj odświeżyć stronę.",
         "completeNotification": "Analiza zakończona"
     },
     "analysisTabBar": {

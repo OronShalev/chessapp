@@ -86,13 +86,8 @@
     },
     "progressReporter": {
         "evaluating": "正在评估……",
-        "awaitingCaptcha": "正在解决CAPTCHA……",
         "classifying": "正在分级……",
         "evaluatingTooltip": "如果这需要一点时间，你可以尝试在设置中减少引擎深度。",
-        "captchaTooltip": "这可能花费几秒钟……",
-        "captchaVerifyFailed": "未能验证CAPTCHA；尝试刷新页面。",
-        "captchaLoadFailed": "未能加载CAPTCHA。你的浏览器很可能过时了。",
-        "captchaUnknownError": "未知CAPTCHA错误；尝试刷新页面。",
         "reportFailed": "生成棋局报告时发生位置错误；尝试刷新页面。",
         "completeNotification": "复盘分析完成"
     },

@@ -15,8 +15,7 @@
     },
     "sidebar": {
         "analysis": "Analyse",
-        "archive": "Archiver",
-        "news": "Actualités"
+        "archive": "Archiver"
     },
     "confirmDialog": {
         "yes": "Oui",

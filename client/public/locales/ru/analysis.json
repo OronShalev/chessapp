@@ -86,13 +86,8 @@
     },
     "progressReporter": {
         "evaluating": "Вычисление...",
-        "awaitingCaptcha": "Решение CAPTCHA...",
         "classifying": "Классификация...",
         "evaluatingTooltip": "Если это займёт много времени, попробуйте уменьшить глубину анализа движка в настройках.",
-        "captchaTooltip": "Подождите немного...",
-        "captchaVerifyFailed": "Не удалось проверить CAPTCHA; попробуйте обновить страницу.",
-        "captchaLoadFailed": "Не удалось загрузить CAPTCHA. Скорее всего, ваш браузер устарел.",
-        "captchaUnknownError": "Неизвестная ошибка CAPTCHA; попробуйте обновить страницу.",
         "reportFailed": "Неизвестная ошибка при создании отчёта об игре; попробуйте обновить страницу.",
         "completeNotification": "Анализ завершен"
     },

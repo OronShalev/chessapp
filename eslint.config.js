@@ -1,12 +1,16 @@
 const tsEslint = require("typescript-eslint");
 const tsStylistic = require("@stylistic/eslint-plugin-ts");
 
-module.exports = tsEslint.config({
-    files: [
-        "**/*.ts",
-        "**/*.tsx"
-    ],
-    languageOptions: {
+module.exports = [
+    {
+        ignores: ["**/dist/**", "node_modules/**"]
+    },
+    ...tsEslint.config({
+        files: [
+            "**/*.ts",
+            "**/*.tsx"
+        ],
+        languageOptions: {
         parser: tsEslint.parser
     },
     plugins: {
@@ -30,4 +34,5 @@ module.exports = tsEslint.config({
         "@ts/no-empty-function": "warn",
         "@ts/no-unused-vars": "warn"
     }
-});
+    })
+];

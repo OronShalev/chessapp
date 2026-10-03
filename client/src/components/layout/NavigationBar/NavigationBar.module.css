@@ -84,45 +84,8 @@
     );
 }
 
-.signIn {
-    gap: 5px;
-    padding: 7px;
-    padding-right: 10px;
-
-    font-family: "Nunito";    
-}
-
 .settings {
     padding: 7px;
-    
+
     background-color: var(--ui-shade-2);
-}
-
-.profileMenu {
-    padding: 0 5px;
-
-    user-select: none;
-}
-
-.profileIcon {
-    display: none;
-    height: 35px;
-}
-
-@media (max-width: 450px) {
-    .profileUsername {
-        display: none;
-    }
-
-    .profileIcon {
-        display: inline;
-    }
-}
-
-.profileImage {
-    height: 42px;
-    aspect-ratio: 1 / 1;
-
-    border-radius: 50%;
-    background-color: aquamarine;
 }

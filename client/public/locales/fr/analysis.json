@@ -86,13 +86,8 @@
     },
     "progressReporter": {
         "evaluating": "En cours d'évaluation...",
-        "awaitingCaptcha": "Résolution du CAPTCHA...",
         "classifying": "Classification...",
         "evaluatingTooltip": "Si cela prend du temps, vous pouvez réduire la profondeur du moteur dans les réglages.",
-        "captchaTooltip": "Cela peut prendre un peu de temps...",
-        "captchaVerifyFailed": "Impossible de vérifier le CAPTCHA, essayez de recharger la page.",
-        "captchaLoadFailed": "Impossible de charger le CAPTCHA. Votre navigateur pourrait avoir besoin d'être mis à jour.",
-        "captchaUnknownError": "Erreur CAPTCHA inconnue, essayez de recharger la page.",
         "reportFailed": "Erreur inconnue lors de la génération du bilan du jeu; essayez de rafraîchir la page.",
         "completeNotification": "Analyse complétée"
     },

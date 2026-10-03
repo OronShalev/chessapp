@@ -46,13 +46,8 @@
     },
     "progressReporter": {
         "evaluating": "हम मूल्यांकन कर रहे हैं...",
-        "awaitingCaptcha": "CAPTCHA का हल करना...",
         "classifying": "हम वर्गीकृत कर रहे हैं...",
         "evaluatingTooltip": "अगर इसमें कुछ समय लगता है, तो आप सेटिंग्स में इंजन की गहराई कम करने की कोशिश कर सकते हैं।",
-        "captchaTooltip": "ये थोड़ी देर ले सकता है...",
-        "captchaVerifyFailed": "CAPTCHA को वेरिफाई नहीं कर सके; पेज को रीफ्रेश करने की कोशिश करो.",
-        "captchaLoadFailed": "CAPTCHA लोड नहीं हो सका। तुम्हारा ब्राउज़र शायद पुराना है।",
-        "captchaUnknownError": "अनजान CAPTCHA एरर; पेज को फिर से रीफ्रेश करने की कोशिश करो.",
         "completeNotification": "विश्लेषण पूरा हो गया है"
     },
     "analysisTabBar": {

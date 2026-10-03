@@ -214,11 +214,6 @@ function Terms() {
                 harm that may be caused to you in relation to accessing Third-Party Content. 
             </span>
 
-            <span>
-                For most users, this relates to advertisements on the Website or sign-in features
-                provided by Google.
-            </span>
-
             <h2 style={{ margin: 0 }}>
                 7. Privacy
             </h2>

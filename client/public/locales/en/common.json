@@ -24,8 +24,7 @@
     },
     "sidebar": {
         "analysis": "Analysis",
-        "archive": "Archive",
-        "news": "News"
+        "archive": "Archive"
     },
     "footer": {
         "privacySettings": "Privacy Settings",

@@ -15,8 +15,7 @@
     },
     "sidebar": {
         "analysis": "Анализ",
-        "archive": "Архивировать",
-        "news": "Новости"
+        "archive": "Архивировать"
     },
     "confirmDialog": {
         "yes": "Да",
