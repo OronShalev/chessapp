@@ -29,7 +29,7 @@
     padding: 0 30px;
     box-sizing: border-box;
     width: 100%;
-    height: calc(100vh - 125px);
+    height: calc(100vh - 60px);
 }
 
 @media (max-width: 900px) {

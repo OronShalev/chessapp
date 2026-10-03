@@ -8,6 +8,8 @@ interface PageWrapperProps {
     contentStyle?: CSSProperties;
     footerClassName?: string;
     footerStyle?: CSSProperties;
+    showNavigationBar?: boolean;
+    showFooter?: boolean;
 }
 
 export default PageWrapperProps;

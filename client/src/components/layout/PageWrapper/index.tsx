@@ -19,7 +19,9 @@ function PageWrapper({
     contentClassName,
     contentStyle,
     footerClassName,
-    footerStyle
+    footerStyle,
+    showNavigationBar = true,
+    showFooter = true
 }: PageWrapperProps) {
     const bugReportingMode = useSettingsStore(
         state => state.settings.bugReportingMode
@@ -27,7 +29,7 @@ function PageWrapper({
 
     return <QueryClientProvider client={queryClient}>
         <div className={className} style={style}>
-            <NavigationBar/>
+            {showNavigationBar && <NavigationBar/>}
 
             <div
                 className={`${styles.content} ${contentClassName}`}
@@ -36,7 +38,7 @@ function PageWrapper({
                 {children}
             </div>
 
-            <Footer className={footerClassName} style={footerStyle} />
+            {showFooter && <Footer className={footerClassName} style={footerStyle} />}
 
             {bugReportingMode && <BugReportingWidget/>}
 

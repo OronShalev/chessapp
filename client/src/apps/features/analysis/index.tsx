@@ -19,7 +19,8 @@ function App() {
     return <BrowserRouter>
         <PageWrapper
             className={styles.wrapper}
-            footerClassName={styles.footer}
+            showNavigationBar={false}
+            showFooter={false}
         >
             <Routes>
                 <Route path="/analysis" element={<Analysis/>} />
