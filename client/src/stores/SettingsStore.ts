@@ -17,6 +17,7 @@ const settingsSchema = z.object({
             timeLimit: z.number().min(0.01),
             lines: z.number().min(1).max(5),
             threads: z.number().min(1).max(64),
+            engineCount: z.number().min(1).max(4),
             suggestionArrows: z.enum(EngineArrowType)
         }),
         classifications: z.object({
@@ -52,6 +53,7 @@ export const defaultSettings: Settings = {
             timeLimitEnabled: false,
             timeLimit: 1,
             threads: 4,
+            engineCount: 4,
             suggestionArrows: EngineArrowType.DISABLED
         },
         classifications: {

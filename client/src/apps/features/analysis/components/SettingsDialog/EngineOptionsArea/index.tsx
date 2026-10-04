@@ -159,6 +159,34 @@ function EngineOptionsArea() {
         }
 
         <div className={styles.setting}>
+            <span data-tooltip-id="settings-engine-engine-count">
+                {t("settings.engine.engineCount")}
+            </span>
+
+            <Tooltip
+                id="settings-engine-engine-count"
+                content={t("settings.engine.descriptions.engineCount")}
+                delayShow={500}
+                className={styles.settingDescription}
+            />
+
+            <NumberSetting
+                min={1}
+                max={4}
+                defaultValue={settings.analysis.engine.engineCount}
+                onChange={value => (
+                    setSettings(draft => {
+                        draft.analysis.engine.engineCount = floor(
+                            clamp(value, 1, 4)
+                        );
+                        return draft;
+                    })
+                )}
+                style={{ width: "180px" }}
+            />
+        </div>
+
+        <div className={styles.setting}>
             <span data-tooltip-id="settings-engine-time-limit">
                 {t("settings.engine.timeLimit")}
             </span>

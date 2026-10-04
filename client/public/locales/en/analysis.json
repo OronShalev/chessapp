@@ -12,6 +12,7 @@
                 "depth": "The number of moves that the engine looks ahead when analysing moves.",
                 "lines": "The number of variations that the engine will consider. Must be at least 2 for some classifications.",
                 "timeLimit": "The maximum amount of time the engine is allowed to analyse a single move.",
+                "engineCount": "The number of engines to run in parallel. Each engine analyses a different move, so more engines finish the analysis faster.",
                 "suggestionArrows": {
                     "disabled": "Disabled: Do not show engine arrows",
                     "continuation": "Top Continuation: Show an arrow for the top move in this position",
@@ -23,6 +24,7 @@
             "depth": "Depth",
             "lines": "Number of Lines",
             "linesWarning": "At least 2 lines are required for Critical and some Brilliant moves.",
+            "engineCount": "Number of Engines",
             "timeLimit": "Time Limit (seconds)",
             "suggestionArrows": {
                 "title": "Suggestion Arrows",

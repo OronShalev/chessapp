@@ -33,7 +33,7 @@ function useEvaluateGame() {
             engineTimeLimit: settings.timeLimitEnabled
                 ? settings.timeLimit : undefined,
             cloudEngineLines: settings.lines,
-            maxEngineCount: 4,
+            maxEngineCount: settings.engineCount,
             engineConfig: engine => engine.setLineCount(settings.lines),
             onProgress: progress => {
                 setEvaluationProgress(progress);
