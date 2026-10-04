@@ -1,7 +1,8 @@
 // benchmark-engine-count.cjs
 //
-// Developer benchmark: verify that running 4 engines in parallel produces a
-// faster game analysis ("review") than running a single engine.
+// Parallel-engine benchmark. Measures how long the local Stockfish evaluation
+// phase takes to analyse a fixed game as the number of engines run in parallel
+// varies from 1 to 8.
 //
 // This mirrors the work-distribution logic in
 //   client/src/apps/features/analysis/lib/evaluate.ts
@@ -12,15 +13,28 @@
 //   - The run completes when every engine has exhausted the position queue.
 //
 // The cloud-evaluation phase is intentionally skipped: it is sequential (one
-// FEN at a time) and is NOT what the 1-4 engine selector parallelizes. Only
+// FEN at a time) and is NOT what the engine-count selector parallelizes. Only
 // the local Stockfish phase is measured, which is the phase the feature
 // changes.
 //
-// Fairness: the 1-engine and 4-engine runs use the identical engine, game,
-// depth, and position set. The only variable is the engine count.
+// Fairness: every (engine, count) combination uses the identical engine build,
+// game, depth, and position set. The only variable is the engine count. Each
+// combination is timed RUNS_PER_COUNT times and the runs are averaged.
 //
-// Usage:  node benchmark-engine-count.cjs
-// Exit code 0 = 4-engine run was faster (requirement met); 1 = not faster.
+// Engine options (the two builds shipped in client/public/engines):
+//   full  -> stockfish-19-single.js  + .wasm   (Stockfish 19, full WASM)
+//   lite  -> stockfish-19-lite-single.js + .wasm (Stockfish 19 Lite, WASM)
+//
+// Results are written incrementally to scripts/benchmark-results.json after
+// every individual run, so a long run can be resumed after an interruption by
+// simply re-running the script (already-completed runs are skipped).
+//
+// Usage:
+//   node benchmark-engine-count.cjs [engineKey]
+//     engineKey optional: full | lite  (default: both)
+//
+// Env overrides (mainly for quick smoke tests):
+//   BENCH_DEPTH, BENCH_PLYS, BENCH_RUNS, BENCH_COUNTS (comma list)
 
 const { spawn } = require("child_process");
 const fs = require("fs");
@@ -32,17 +46,32 @@ const STARTING_FEN =
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 // Number of half-moves to play, giving 31 positions (root + 30). Long enough
-// that 4 engines each receive meaningful parallel work.
-const PLY_COUNT = 30;
+// that the search work dominates the fixed per-engine startup overhead, so the
+// measured speedup reflects work distribution rather than process startup.
+const PLY_COUNT = parseInt(process.env.BENCH_PLYS || "30");
 
-// Depth 12: the starting position's search explodes at depth 16 in the lite
-// WASM build (times out past 60s), while depth 12 keeps every position fast.
-// The parallelism speedup is a property of work distribution, not search
-// depth, so a lower depth does not weaken the conclusion.
-const DEPTH = 12;
+// Depth 20, per the benchmark request.
+const DEPTH = parseInt(process.env.BENCH_DEPTH || "20");
 // MultiPV, matching the default settings.lines (2).
 const LINES = 2;
-const ENGINE_COUNTS = [1, 4];
+const ENGINE_COUNTS = (process.env.BENCH_COUNTS || "1,2,4,8,16")
+    .split(",").map(Number);
+const RUNS_PER_COUNT = parseInt(process.env.BENCH_RUNS || "3");
+
+const ENGINES = {
+    full: {
+        label: "Stockfish 19 (full WASM)",
+        js: "stockfish-19-single.js",
+        wasm: "stockfish-19-single.wasm"
+    },
+    lite: {
+        label: "Stockfish 19 Lite (WASM)",
+        js: "stockfish-19-lite-single.js",
+        wasm: "stockfish-19-lite-single.wasm"
+    }
+};
+
+const RESULTS_PATH = path.join(__dirname, "benchmark-results.json");
 
 // ---------------------------------------------------------------------------
 // Build the mainline position chain (mirrors parseStateTree + getNodeChain).
@@ -197,69 +226,124 @@ function runBenchmark(positions, engineCount, tmpDir) {
 }
 
 // ---------------------------------------------------------------------------
+// Results persistence (incremental + resumable).
+// ---------------------------------------------------------------------------
+function loadResults() {
+    try {
+        return JSON.parse(fs.readFileSync(RESULTS_PATH, "utf8"));
+    } catch {
+        return { meta: null, results: [] };
+    }
+}
+
+function saveResults(data) {
+    fs.writeFileSync(RESULTS_PATH, JSON.stringify(data, null, 2));
+}
+
+function doneKeys(data) {
+    const set = new Set();
+    for (const r of data.results) set.add(`${r.engine}:${r.count}:${r.run}`);
+    return set;
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 async function main() {
+    const engineArg = process.argv[2];
+    const engineKeys = engineArg
+        ? [engineArg]
+        : Object.keys(ENGINES);
+    for (const k of engineKeys) {
+        if (!ENGINES[k]) {
+            console.error(`Unknown engine key: ${k}`);
+            process.exit(2);
+        }
+    }
+
     const positions = buildPositions();
     console.log(`Game: ${positions.length} positions, depth ${DEPTH}, ` +
-        `MultiPV ${LINES}, engine ${"stockfish-19-lite"}`);
+        `MultiPV ${LINES}, ${RUNS_PER_COUNT} runs per count, ` +
+        `counts [${ENGINE_COUNTS.join(",")}]`);
+    console.log(`Engines: ${engineKeys.join(", ")}`);
     console.log("");
 
-    // One shared temp dir: copy the engine JS + wasm, renaming the JS to
-    // `stockfish.js` so Emscripten loads `stockfish.wasm`.
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sf-bench-"));
-    fs.copyFileSync(
-        path.join(__dirname, "..", "public", "engines",
-            "stockfish-19-lite-single.js"),
-        path.join(tmpDir, "stockfish.js")
-    );
-    fs.copyFileSync(
-        path.join(__dirname, "..", "public", "engines",
-            "stockfish-19-lite-single.wasm"),
-        path.join(tmpDir, "stockfish.wasm")
-    );
+    const data = loadResults();
+    data.meta = {
+        depth: DEPTH,
+        lines: LINES,
+        positionCount: positions.length,
+        engineCounts: ENGINE_COUNTS,
+        runsPerCount: RUNS_PER_COUNT,
+        engines: engineKeys,
+        startedAt: data.meta && data.meta.startedAt
+            ? data.meta.startedAt
+            : new Date().toISOString(),
+        finishedAt: null
+    };
+    const done = doneKeys(data);
 
-    const results = {};
+    // One temp dir per engine option, holding that build's JS (+ wasm) renamed
+    // to stockfish.js / stockfish.wasm so Emscripten loads the right wasm.
+    const tmpDirs = {};
+    for (const key of engineKeys) {
+        const spec = ENGINES[key];
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), `sf-bench-${key}-`));
+        fs.copyFileSync(
+            path.join(__dirname, "..", "public", "engines", spec.js),
+            path.join(dir, "stockfish.js")
+        );
+        if (spec.wasm) {
+            fs.copyFileSync(
+                path.join(__dirname, "..", "public", "engines", spec.wasm),
+                path.join(dir, "stockfish.wasm")
+            );
+        }
+        tmpDirs[key] = dir;
+    }
+
     try {
-        for (const count of ENGINE_COUNTS) {
-            process.stdout.write(`Running ${count} engine(s)... `);
-            const { elapsed, positionsEvaluated } =
-                await runBenchmark(positions, count, tmpDir);
-            results[count] = { elapsed, positionsEvaluated };
-            console.log(`${(elapsed / 1000).toFixed(2)}s ` +
-                `(${positionsEvaluated} positions)`);
+        for (const key of engineKeys) {
+            for (const count of ENGINE_COUNTS) {
+                for (let run = 1; run <= RUNS_PER_COUNT; run++) {
+                    const k = `${key}:${count}:${run}`;
+                    if (done.has(k)) {
+                        console.log(`[skip] ${key} x${count} run${run} (done)`);
+                        continue;
+                    }
+                    process.stdout.write(
+                        `[${key}] ${count} engine(s), run ${run}/${RUNS_PER_COUNT}... `
+                    );
+                    const { elapsed, positionsEvaluated } =
+                        await runBenchmark(positions, count, tmpDirs[key]);
+                    data.results.push({
+                        engine: key,
+                        engineLabel: ENGINES[key].label,
+                        count,
+                        run,
+                        elapsedMs: elapsed,
+                        positionsEvaluated
+                    });
+                    saveResults(data);
+                    console.log(`${(elapsed / 1000).toFixed(2)}s ` +
+                        `(${positionsEvaluated} positions)`);
+                }
+            }
         }
     } finally {
-        // Best-effort: child.kill() is async, so on Windows the killed
-        // processes may still hold the wasm/js handles when we get here.
-        // The dir is in os.tmpdir() and reaped by the OS, so a failure here
-        // must not mask the benchmark results.
-        try {
-            fs.rmSync(tmpDir, { recursive: true, force: true });
-        } catch {
-            // ignore
+        data.meta.finishedAt = new Date().toISOString();
+        saveResults(data);
+        // Best-effort cleanup: child.kill() is async, so on Windows the killed
+        // processes may still hold the wasm/js handles. The dirs are in
+        // os.tmpdir() and reaped by the OS, so a failure here must not mask
+        // the benchmark results.
+        for (const dir of Object.values(tmpDirs)) {
+            try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
         }
     }
 
-    const one = results[1];
-    const four = results[4];
-    const speedup = one.elapsed / four.elapsed;
-
     console.log("");
-    console.log("Results:");
-    console.log(`  1 engine: ${(one.elapsed / 1000).toFixed(2)}s`);
-    console.log(`  4 engines: ${(four.elapsed / 1000).toFixed(2)}s`);
-    console.log(`  Speedup:   ${speedup.toFixed(2)}x`);
-    console.log("");
-
-    const faster = four.elapsed < one.elapsed;
-    if (faster) {
-        console.log("PASS: 4 engines in parallel were faster than 1 engine.");
-        process.exit(0);
-    } else {
-        console.log("FAIL: 4 engines in parallel were NOT faster than 1 engine.");
-        process.exit(1);
-    }
+    console.log(`Results written to ${RESULTS_PATH}`);
 }
 
 main().catch(err => {

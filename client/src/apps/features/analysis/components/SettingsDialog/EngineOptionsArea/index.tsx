@@ -21,11 +21,15 @@ const engineVersionOptions = [
     {
         label: "Stockfish 19 Lite (Recommended)",
         value: EngineVersion.STOCKFISH_19_LITE
-    },
-    {
-        label: "Stockfish 19 (Compatibility)",
-        value: EngineVersion.STOCKFISH_19_ASM
     }
+];
+
+const engineCountOptions: { label: string; value: 1 | 2 | 4 | 8 | 16 }[] = [
+    { label: "1", value: 1 },
+    { label: "2", value: 2 },
+    { label: "4", value: 4 },
+    { label: "8", value: 8 },
+    { label: "16", value: 16 }
 ];
 
 function EngineOptionsArea() {
@@ -170,19 +174,20 @@ function EngineOptionsArea() {
                 className={styles.settingDescription}
             />
 
-            <NumberSetting
-                min={1}
-                max={4}
-                defaultValue={settings.analysis.engine.engineCount}
-                onChange={value => (
-                    setSettings(draft => {
-                        draft.analysis.engine.engineCount = floor(
-                            clamp(value, 1, 4)
-                        );
-                        return draft;
-                    })
+            <DropdownSetting
+                options={engineCountOptions}
+                defaultValue={engineCountOptions.find(
+                    option => option.value == settings.analysis.engine.engineCount
                 )}
-                style={{ width: "180px" }}
+                onSelect={option => {
+                    if (!option) return;
+
+                    setSettings(draft => {
+                        draft.analysis.engine.engineCount = option.value;
+                        return draft;
+                    });
+                }}
+                dropdownStyle={{ width: "180px" }}
             />
         </div>
 

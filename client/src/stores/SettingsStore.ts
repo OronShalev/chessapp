@@ -17,7 +17,13 @@ const settingsSchema = z.object({
             timeLimit: z.number().min(0.01),
             lines: z.number().min(1).max(5),
             threads: z.number().min(1).max(64),
-            engineCount: z.number().min(1).max(4),
+            engineCount: z.union([
+                z.literal(1),
+                z.literal(2),
+                z.literal(4),
+                z.literal(8),
+                z.literal(16)
+            ]),
             suggestionArrows: z.enum(EngineArrowType)
         }),
         classifications: z.object({
@@ -76,6 +82,8 @@ export const defaultSettings: Settings = {
     bugReportingMode: false
 };
 
+const ENGINE_COUNTS = [1, 2, 4, 8, 16] as const;
+
 function fetchSettings() {
     const value = localStorage.getItem(LocalStorageKey.SETTINGS);
 
@@ -84,7 +92,22 @@ function fetchSettings() {
     if (value == null) return defaultSettingsCopy;
 
     try {
-        return merge(defaultSettingsCopy, JSON.parse(value));
+        const settings = merge(defaultSettingsCopy, JSON.parse(value));
+
+        // Migrate engine counts saved before the 1/2/4/8/16 options existed
+        // to the nearest valid value, so the dropdown always has a match.
+        if (!ENGINE_COUNTS.includes(settings.analysis.engine.engineCount)) {
+            settings.analysis.engine.engineCount = ENGINE_COUNTS.reduce(
+                (closest, count) => (
+                    Math.abs(count - settings.analysis.engine.engineCount)
+                    < Math.abs(closest - settings.analysis.engine.engineCount)
+                        ? count : closest
+                ),
+                ENGINE_COUNTS[0]
+            );
+        }
+
+        return settings;
     } catch {
         return defaultSettingsCopy;
     }
