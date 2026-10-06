@@ -42,8 +42,8 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Chess } from "chess.js";
 
-// Then imports from shared, and elsewhere in the same package
-import { PieceColour } from "shared/constants/PieceColour";
+// Then imports from the app's domain layer and elsewhere in the same package
+import { PieceColour } from "@domain/constants/PieceColour";
 import { archiveGame } from "@/lib/gameArchive";
 
 // Then props for component & CSS modules

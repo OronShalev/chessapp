@@ -27,7 +27,7 @@ These are the environment variables that you can set when hosting WintrChess:
 NODE_ENV="production"
 ```
 
-The environment that the app is running in. Can be one of two values: `production` (default) and `development`. In production, only requests with the `Host` header set to `wintrchess.com` are accepted. You can edit the hostname whitelist in `server/src/lib/security/whitelist.ts`.
+The environment that the app is running in. Can be one of two values: `production` (default) and `development`. In production, only requests with the `Host` header set to `wintrchess.com` are accepted. You can edit the hostname whitelist in `app/http/src/lib/security/whitelist.ts`.
 
 ```toml
 PORT=8080
@@ -47,14 +47,6 @@ npm install
 
 ```sh
 npm run build
-```
-
-You can also compile individual workspaces if you want with the `-w` flag:
-
-```sh
-npm run build -w client
-npm run build -w server
-npm run build -w shared
 ```
 
 ### Start the server
