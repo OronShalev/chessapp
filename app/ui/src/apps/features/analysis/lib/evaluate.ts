@@ -109,22 +109,10 @@ function createGameEvaluator(
                     depth: options.engineDepth,
                     timeLimit: options.engineTimeLimit
                         ? options.engineTimeLimit * 1000
-                        : undefined,
-                    onEngineLine: line => {
-                        // Depth 0 is given for states with no legal moves
-                        const localProgress = line.depth == 0
-                            ? 1 : line.depth / options.engineDepth;
-                        
-                        // Progress value will already exist for cutoff node
-                        progresses[currentStateTreeNodeIndex] = Math.max(
-                            progresses[currentStateTreeNodeIndex] || 0,
-                            localProgress
-                        );
-
-                        options.onProgress?.(getProgress());
-                    }
+                        : undefined
                 }).then(lines => {
                     progresses[currentStateTreeNodeIndex] = 1;
+                    options.onProgress?.(getProgress());
 
                     currentStateTreeNode.state.engineLines = [
                         ...currentStateTreeNode.state.engineLines,

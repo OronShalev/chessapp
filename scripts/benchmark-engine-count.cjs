@@ -54,6 +54,8 @@ const PLY_COUNT = parseInt(process.env.BENCH_PLYS || "30");
 const DEPTH = parseInt(process.env.BENCH_DEPTH || "20");
 // MultiPV, matching the default settings.lines (2).
 const LINES = 2;
+// Threads, matching the default settings.threads (4).
+const THREADS = parseInt(process.env.BENCH_THREADS || "4");
 const ENGINE_COUNTS = (process.env.BENCH_COUNTS || "1,2,4,8,16")
     .split(",").map(Number);
 const RUNS_PER_COUNT = parseInt(process.env.BENCH_RUNS || "3");
@@ -146,6 +148,9 @@ class Engine {
             if (line === "uciok") {
                 this.child.stdin.write(
                     `setoption name MultiPV value ${LINES}\n`
+                );
+                this.child.stdin.write(
+                    `setoption name Threads value ${THREADS}\n`
                 );
                 this.onReady && this.onReady();
             } else if (line.startsWith("bestmove")) {

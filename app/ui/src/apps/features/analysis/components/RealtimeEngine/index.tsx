@@ -60,11 +60,14 @@ function RealtimeEngine({
     useEffect(() => {
         engine?.terminate();
 
-        const newEngine = new Engine(hydratedConfig.version);
+        const newEngine = new Engine(
+            hydratedConfig.version,
+            hydratedConfig.threads
+        );
         setEngine(newEngine);
 
         return () => newEngine.terminate();
-    }, [hydratedConfig.version]);
+    }, [hydratedConfig.version, hydratedConfig.threads]);
 
     // Get number of lines expected to appear
     const expectedLineCount = useMemo(() => Math.min(

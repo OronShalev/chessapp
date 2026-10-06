@@ -17,11 +17,12 @@ class Engine {
     private position = STARTING_FEN;
     private evaluating = false;
 
-    constructor(version: EngineVersion) {
+    constructor(version: EngineVersion, threads = 1) {
         this.worker = new Worker("/engines/" + version);
         this.version = version;
 
         this.worker.postMessage("uci");
+        this.setThreadCount(threads);
         this.setPosition(this.position);
     }
 
