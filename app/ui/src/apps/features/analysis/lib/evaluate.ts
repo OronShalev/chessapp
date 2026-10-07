@@ -45,6 +45,21 @@ function createGameEvaluator(
 
     const stateTreeNodes = getNodeChain(game.stateTree);
 
+    // The engine API takes each position's full cumulative UCI move list,
+    // so precompute every prefix in one pass. Building the list per
+    // position (slice + filter + map over the whole chain each time) is
+    // O(depth) per position, i.e. O(n²) per game.
+    const stateTreeMovePrefixes: string[][] = [];
+    let movePrefix: string[] = [];
+
+    for (const node of stateTreeNodes) {
+        if (node.state.move) {
+            movePrefix = [...movePrefix, node.state.move.uci];
+        }
+
+        stateTreeMovePrefixes.push(movePrefix);
+    }
+
     // Each state tree node keeps a progress from 0 to 1
     const progresses: number[] = [];
 
@@ -59,7 +74,7 @@ function createGameEvaluator(
         // position. The first position that is not in the cloud (or
         // returns insufficient data) ends the prefix, and everything from
         // there on is evaluated locally.
-        const CLOUD_BATCH_SIZE = 4;
+        const CLOUD_BATCH_SIZE = 8;
 
         for (
             let batchStart = 0;
@@ -168,10 +183,9 @@ function createGameEvaluator(
                     return;
                 }
 
-                engine.setPosition(game.initialPosition, stateTreeNodes
-                    .slice(0, stateTreeNodeIndex + 1)
-                    .filter(node => node.state.move)
-                    .map(node => node.state.move!.uci)
+                engine.setPosition(
+                    game.initialPosition,
+                    stateTreeMovePrefixes[stateTreeNodeIndex]
                 );
 
                 engine.evaluate({
