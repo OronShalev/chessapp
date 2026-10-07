@@ -1,0 +1,16 @@
+[
+    { "build": "lite", "workers": 12, "threads": 1, "hash": 21, "fixture": "classical" },
+    { "build": "lite", "workers": 12, "threads": 1, "hash": 21, "fixture": "tactical" },
+    { "build": "lite", "workers": 12, "threads": 1, "hash": 21, "fixture": "endgame" },
+    { "build": "lite", "workers": 11, "threads": 1, "hash": 23, "fixture": "classical" },
+    { "build": "lite", "workers": 6, "threads": 1, "hash": 32, "fixture": "classical" },
+    { "build": "lite", "workers": 6, "threads": 2, "hash": 32, "fixture": "classical" },
+    { "build": "lite", "workers": 8, "threads": 1, "hash": 32, "fixture": "tactical" },
+    { "build": "lite", "workers": 12, "threads": 1, "hash": 64, "fixture": "tactical" },
+    { "build": "lite", "workers": 4, "threads": 1, "hash": 128, "fixture": "tactical" },
+    { "build": "lite", "workers": 16, "threads": 1, "hash": 16, "fixture": "classical" },
+    { "build": "lite", "workers": 12, "threads": 1, "hash": 21, "fixture": "classical", "mpv": 1 },
+    { "build": "lite", "workers": 12, "threads": 1, "hash": 21, "fixture": "tactical", "mpv": 1 },
+    { "build": "lite", "workers": 12, "threads": 1, "hash": 21, "fixture": "classical", "hashPolicy": "clear" },
+    { "build": "full", "workers": 12, "threads": 1, "hash": 21, "fixture": "classical" }
+]

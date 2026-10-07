@@ -1,0 +1,10 @@
+[
+    { "build": "lite", "workers": 1, "threads": 1, "hash": 32, "fixture": "classical" },
+    { "build": "lite", "workers": 1, "threads": 1, "hash": 32, "fixture": "tactical" },
+    { "build": "lite", "workers": 1, "threads": 1, "hash": 32, "fixture": "endgame" },
+    { "build": "lite", "workers": 12, "threads": 1, "hash": 21, "fixture": "classical" },
+    { "build": "lite", "workers": 12, "threads": 1, "hash": 21, "fixture": "tactical" },
+    { "build": "lite", "workers": 12, "threads": 1, "hash": 21, "fixture": "endgame" },
+    { "build": "lite", "workers": 12, "threads": 1, "hash": 21, "fixture": "classical" },
+    { "build": "full", "workers": 12, "threads": 1, "hash": 21, "fixture": "classical" }
+]

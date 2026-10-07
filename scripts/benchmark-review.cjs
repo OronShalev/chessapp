@@ -21,6 +21,14 @@ const depth = Number(process.env.BENCH_DEPTH || 20);
 // Threads per engine. Defaults to 1 (each engine single-threaded); set via
 // BENCH_THREADS to model the app's `threads` setting.
 const threads = Number(process.env.BENCH_THREADS || 1);
+// MultiPV lines per search; models the app's "lines" setting (default 2).
+const multiPV = Number(process.env.BENCH_MPV || 2);
+// Optional node budget: search with `go nodes N` instead of a depth target
+// (0 = depth-only search, the app default).
+const nodeBudget = Number(process.env.BENCH_NODES || 0);
+// Hash policy: "keep" = the engine's hash survives across positions (app
+// behaviour); "clear" = `ucinewgame` before every position.
+const hashPolicy = process.env.BENCH_HASH_POLICY || "keep";
 // Allows the matrix driver to freeze a copy of engine.ts (baseline) or point
 // at the live file (improved), independent of edits made while runs execute.
 const engineSourcePath = path.resolve(
@@ -32,13 +40,21 @@ const fixtures = {
     // Fischer–Spassky, Reykjavik 1972, game 6: first 25 full moves.
     classical: "c4 e6 Nf3 d5 d4 Nf6 Nc3 Be7 Bg5 O-O e3 h6 Bh4 b6 cxd5 Nxd5 Bxe7 Qxe7 Nxd5 exd5 Rc1 Be6 Qa4 c5 Qa3 Rc8 Bb5 a6 dxc5 bxc5 O-O Ra7 Be2 Nd7 Nd4 Qf8 Nxe6 fxe6 e4 d4 f4 Qe7 e5 Rb8 Bc4 Kh8 Qh3 Nf8 b3 a5",
     // Kasparov–Topalov, Wijk aan Zee 1999: first 25 full moves.
-    tactical: "e4 d6 d4 Nf6 Nc3 g6 Be3 Bg7 Qd2 c6 f3 b5 Nge2 Nbd7 Bh6 Bxh6 Qxh6 Bb7 a3 e5 O-O-O Qe7 Kb1 a6 Nc1 O-O-O Nb3 exd4 Rxd4 c5 Rd1 Nb6 g3 Kb8 Na5 Ba8 Bh3 d5 Qf4+ Ka7 Rhe1 d4 Nd5 Nbxd5 exd5 Qd6 Rxd4 cxd4 Re7+ Kb6"
+    tactical: "e4 d6 d4 Nf6 Nc3 g6 Be3 Bg7 Qd2 c6 f3 b5 Nge2 Nbd7 Bh6 Bxh6 Qxh6 Bb7 a3 e5 O-O-O Qe7 Kb1 a6 Nc1 O-O-O Nb3 exd4 Rxd4 c5 Rd1 Nb6 g3 Kb8 Na5 Ba8 Bh3 d5 Qf4+ Ka7 Rhe1 d4 Nd5 Nbxd5 exd5 Qd6 Rxd4 cxd4 Re7+ Kb6",
+    // Endgame-heavy fixture: the opening of Kasparov–Flear, Manchester 1987
+    // (real game, first 9 moves), continued with an exchange-heavy line that
+    // leaves the board as a B+N+P vs B+N+P endgame from around move 12 on
+    // (queens off after 11...Qxf2+). Every move is legal-verified by chess.js.
+    endgame: "d4 Nf6 c4 e6 Nf3 Bb4+ Nbd2 d5 g3 O-O Bg2 dxc4 O-O Qe7 a4 c5 d5 exd5 Nxc4 Qxe2 Qxd5 Qxf2+ Rxf2 Nxd5 Rf1 Re8 Ra2 Rf8 Ra3 Bxa3 Nxa3 Re8 Rf2 Re1+ Nxe1 Nd7 Rxf7 Kxf7 Bxd5+ Ke8 Bxb7 Bxb7 Nb5 Rb8 Nxa7 Rc8 Nxc8 Bxc8 Bd2 Bb7"
 };
 if (!["lite", "full"].includes(build) || !fixtures[fixture]
     || !Number.isInteger(workers) || workers < 1 || workers > 16
     || !Number.isInteger(hash) || hash < 1
     || !Number.isInteger(depth) || depth < 1
     || !Number.isInteger(threads) || threads < 1 || threads > 32
+    || !Number.isInteger(multiPV) || multiPV < 1 || multiPV > 8
+    || !Number.isInteger(nodeBudget) || nodeBudget < 0
+    || !["keep", "clear"].includes(hashPolicy)
     || !fs.existsSync(engineSourcePath)) throw Error("Invalid benchmark arguments");
 
 const board = new Chess();
@@ -51,7 +67,10 @@ if (positions.length !== 51) throw Error("Fixture must contain exactly 50 plies"
 
 const out = path.resolve(process.env.BENCH_OUT || path.join(__dirname, "review-benchmarks"));
 fs.mkdirSync(out, { recursive: true });
-const id = `${fixture}-${build}-w${workers}-t${threads}-h${hash}-d${depth}-${Date.now()}`;
+const id = `${fixture}-${build}-w${workers}-t${threads}-h${hash}`
+    + `${hashPolicy === "clear" ? "-hashclear" : ""}`
+    + `-d${depth}${nodeBudget ? `-n${nodeBudget}` : ""}-mp${multiPV}`
+    + `-${Date.now()}`;
 const resultPath = path.join(out, `${id}.json`);
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), "review-bench-"));
 fs.copyFileSync(path.join(root, "public", "engines", version), path.join(temp, "stockfish.js"));
@@ -144,7 +163,7 @@ const Engine = engineModule.exports.default;
 
 const result = {
     meta: {
-        id, build, version, workers, threadsPerEngine: threads, hashMB: hash, depth, multiPV: 2,
+        id, build, version, workers, threadsPerEngine: threads, hashMB: hash, hashPolicy, depth, multiPV, nodeBudget,
         fixture, plies: 50, positions: 51, timeLimit: null,
         mode: "actual Engine.ts with Node process Worker adapter; cloud/UI/classification excluded",
         node: process.version, cpu: os.cpus()[0].model, logicalCPUs: os.cpus().length,
@@ -152,12 +171,58 @@ const result = {
         engineSourceSHA256: require("node:crypto").createHash("sha256").update(source).digest("hex"),
         wasmSHA256: require("node:crypto").createHash("sha256").update(fs.readFileSync(path.join(temp, "stockfish.wasm"))).digest("hex")
     },
-    status: "running", startup: [], positions: []
+    status: "running", startup: [], positions: [], memorySamples: []
 };
-const save = () => fs.writeFileSync(resultPath, JSON.stringify(result, null, 2));
+// Atomic + fault-tolerant incremental save: write to a sibling temp file
+// and rename over the result, so a reader (the matrix driver) never sees a
+// half-written file, and a transient lock/antivirus glitch on the target
+// path does not take the whole run down. Intermediate saves are logged and
+// swallowed; the final save in main() retries before giving up.
+const save = () => {
+    const tmpPath = resultPath + ".tmp";
+    const write = () => {
+        fs.writeFileSync(tmpPath, JSON.stringify(result, null, 2));
+        fs.renameSync(tmpPath, resultPath);
+    };
+    try {
+        write();
+    } catch (error) {
+        if (result.status === "complete" || result.status === "failed")
+            throw error;
+
+        console.warn(`save glitch (ignored, status ${result.status}): ${error}`);
+    }
+};
 let next = 0;
 const start = performance.now();
 let lastCompletion = start;
+
+// Peak-memory tracking: one `tasklist` snapshot every 10 s (all child PIDs
+// in a single call). Windows only; other platforms record no samples.
+const memoryTimer = process.platform === "win32" ? setInterval(() => {
+    try {
+        const csv = require("node:child_process").execFileSync(
+            "tasklist", ["/FO", "CSV", "/NH"],
+            { maxBuffer: 8 * 1024 * 1024, windowsHide: true }
+        ).toString();
+        const byPid = {};
+        for (const line of csv.split(/\r?\n/)) {
+            // Columns: "Image Name","PID","Session Name","Session#","Mem Usage"
+            const m = line.match(/^"([^"]*)","(\d+)","([^"]*)","([^"]*)","([\d,]+) K"$/);
+            if (m) byPid[m[2]] = Number(m[5].replace(/,/g, ""));
+        }
+        const tick = {};
+        for (const w of children) {
+            const pid = w.child && w.child.pid;
+            if (pid) tick[pid] = byPid[pid] || 0;
+        }
+        result.memorySamples.push({
+            t: Math.round(performance.now() - start),
+            totalKB: Object.values(tick).reduce((a, b) => a + b, 0),
+            byPid: tick
+        });
+    } catch { /* sample is best-effort */ }
+}, 10000) : undefined;
 // Failure watchdog only: never returns a shortened search as a valid result.
 const watchdog = setInterval(() => {
     if (performance.now() - lastCompletion > 15 * 60 * 1000) {
@@ -179,7 +244,7 @@ async function lane(workerIndex) {
     // The failure promise may reject between searches; attach a handler immediately.
     failure.catch(() => {});
     engine.onError(message => rejectFailure(Error(message)));
-    engine.setLineCount(2);
+    engine.setLineCount(multiPV);
     engine.setOption("Hash", String(hash));
     await Promise.race([new Promise(resolve => {
         worker.ready = resolve;
@@ -193,13 +258,17 @@ async function lane(workerIndex) {
         const callbackStart = worker.callbackMs;
         const infosStart = worker.infoLines;
         worker.capture = [];
+        if (hashPolicy === "clear") engine.newGame();
         engine.setPosition(STARTING_FEN, position.moves);
         const setupMs = performance.now() - positionStart;
-        const lines = await Promise.race([engine.evaluate({ depth }), failure]);
+        const lines = await Promise.race([engine.evaluate(
+            nodeBudget ? { nodes: nodeBudget } : { depth }
+        ), failure]);
         const end = performance.now();
-        const expected = Math.min(2, new Chess(position.fen).moves().length);
+        const expected = Math.min(multiPV, new Chess(position.fen).moves().length);
         const finalLines = Array.from({ length: expected }, (_, i) =>
-            lines.findLast(line => line.depth >= depth && line.index === i + 1));
+            lines.findLast(line => line.depth >= (nodeBudget ? 1 : depth)
+                && line.index === i + 1));
         if (finalLines.some(line => !line || !line.moves.length)) {
             throw Error(`Position ${index}: missing depth ${depth} MultiPV`);
         }
@@ -246,10 +315,22 @@ async function main() {
         console.error(error);
     } finally {
         clearInterval(watchdog);
+        if (memoryTimer) clearInterval(memoryTimer);
         children.forEach(child => child.terminate());
         await Promise.all(children.map(child => child.exited));
         result.meta.finishedAt = new Date().toISOString();
-        save();
+        // The final save must land: retry through transient lock glitches.
+        for (let attempt = 0; attempt < 5; attempt++) {
+            try {
+                save();
+                break;
+            } catch (error) {
+                if (attempt === 4) throw error;
+                Atomics.wait(
+                    new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250
+                );
+            }
+        }
         fs.rmSync(temp, { recursive: true, force: true });
     }
 }

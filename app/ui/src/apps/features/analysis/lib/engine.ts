@@ -113,6 +113,20 @@ class Engine {
         return this;
     }
 
+    /**
+     * Resets the engine's search state: clears the hash table and the
+     * search history (UCI `ucinewgame`). Call this when a review should
+     * start from a clean hash instead of reusing entries from earlier
+     * positions (the app's default keeps the hash for the whole review,
+     * which reuses tablebase- and opening-relevant entries and keeps
+     * per-position setup cheap).
+     */
+    newGame() {
+        this.worker.postMessage("ucinewgame");
+
+        return this;
+    }
+
     setPosition(fen: string, uciMoves?: string[]) {
         if (uciMoves?.length) {
             const movesKey = uciMoves.join(" ");
@@ -168,8 +182,16 @@ class Engine {
         this.position = this.positionBoard.fen();
     }
 
+    /**
+     * Searches the current position. Bound the search with `depth` (the
+     * default and most precise bound), or with a node budget (`nodes`)
+     * for a constant-amount-of-work search, or a `timeLimit` alone. When
+     * a `timeLimit` is given together with `depth`/`nodes` it acts as an
+     * additional "whichever comes first" cap, as before.
+     */
     async evaluate(options: {
-        depth: number;
+        depth?: number;
+        nodes?: number;
         timeLimit?: number;
         onEngineLine?: (line: EngineLine) => void;
     }): Promise<EngineLine[]> {
@@ -179,7 +201,15 @@ class Engine {
         // receives every line for live display.
         const engineLines: EngineLine[] = [];
 
-        const maxTimeArgument = options.timeLimit
+        // `go depth D` keeps working exactly as before; `nodes` and
+        // `timeLimit` are alternative bounds for callers that want a
+        // fixed-amount-of-work search instead of a fixed depth.
+        const searchArgument = options.depth
+            ? `depth ${options.depth}`
+            : options.nodes
+                ? `nodes ${options.nodes}`
+                : `movetime ${options.timeLimit}`;
+        const maxTimeArgument = options.timeLimit && options.depth
             ? `movetime ${options.timeLimit}` : "";
 
         // Fully parsing every intermediate line (SAN conversion and all)
@@ -195,7 +225,7 @@ class Engine {
         this.evaluating = true;
 
         await this.consumeLogs(
-            `go depth ${options.depth} ${maxTimeArgument}`,
+            `go ${searchArgument} ${maxTimeArgument}`,
             log => (
                 log.startsWith("bestmove")
                 || log.includes("depth 0")

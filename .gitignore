@@ -12,5 +12,8 @@ scripts/review-benchmarks/baseline/
 scripts/review-benchmarks/improved/
 scripts/review-benchmarks/round2-before/
 scripts/review-benchmarks/round2-after/
+scripts/review-benchmarks/round3-baseline/
+scripts/review-benchmarks/round3-baseline-extended/
+scripts/review-benchmarks/round3-improved/
 scripts/review-benchmarks/snapshots/
 scripts/review-benchmarks/*.log

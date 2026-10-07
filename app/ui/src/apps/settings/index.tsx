@@ -15,6 +15,7 @@ const BugReportingSection = lazy(
 
 import "@/i18n";
 import "@/index.css";
+import "@/lib/serviceWorker";
 
 import * as styles from "./index.module.css";
 

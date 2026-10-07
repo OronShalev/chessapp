@@ -10,6 +10,7 @@ const Analysis = lazy(() => import("./pages/Analysis"));
 
 import "@/i18n";
 import "@/index.css";
+import "@/lib/serviceWorker";
 
 const root = ReactDOM.createRoot(
     document.querySelector(".root")!

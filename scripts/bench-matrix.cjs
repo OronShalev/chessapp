@@ -37,9 +37,13 @@ const LIVE_ENGINE = path.join(
 );
 const benchScript = path.join(__dirname, "benchmark-review.cjs");
 
-let engineSourcePath = LIVE_ENGINE;
-if (phase === "baseline") {
+let engineSourcePath = process.env.BENCH_ENGINE_SRC
+    ? path.resolve(process.env.BENCH_ENGINE_SRC)
+    : LIVE_ENGINE;
+if (phase === "baseline" && !process.env.BENCH_ENGINE_SRC) {
     // Freeze a snapshot of the engine source for the whole baseline phase.
+    // (BENCH_ENGINE_SRC may pin an existing snapshot explicitly, e.g. when
+    // running a `...-baseline` phase name after the live file already moved.)
     const snapDir = path.join(__dirname, "review-benchmarks", "snapshots");
     fs.mkdirSync(snapDir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -66,15 +70,20 @@ const DEFAULT_BASELINE_CONFIGS = [
 ];
 
 const configs = (() => {
-    if (phase === "baseline") return DEFAULT_BASELINE_CONFIGS;
-
+    // A custom config list (argv[3]) applies to any phase; otherwise the
+    // phase default is used (`...-baseline` phases fall back to the
+    // original round-1 matrix when no round3-baseline list exists).
     const customPath = process.argv[3]
-        || path.join(__dirname, "review-benchmarks", "improved-configs.json");
-    if (!fs.existsSync(customPath)) {
-        console.error(`No improved config list at ${customPath}`);
-        process.exit(2);
+        || path.join(__dirname, "review-benchmarks",
+            phase.endsWith("baseline")
+                ? "round3-baseline-configs.json"
+                : "improved-configs.json");
+    if (fs.existsSync(customPath)) {
+        return JSON.parse(fs.readFileSync(customPath, "utf8"));
     }
-    return JSON.parse(fs.readFileSync(customPath, "utf8"));
+    if (phase.endsWith("baseline")) return DEFAULT_BASELINE_CONFIGS;
+
+    throw Error(`No ${phase} config list at ${customPath}`);
 })();
 
 const outRoot = path.join(__dirname, "review-benchmarks", phase);
@@ -92,7 +101,8 @@ const summary = {
     phase,
     machine,
     depth,
-    multiPV: 2,
+    // multiPV / nodeBudget / hashPolicy are per-config (see each run's
+    // `config` object); there is no single phase-wide value anymore.
     plies: 50,
     positions: 51,
     engineSourcePath,
@@ -110,8 +120,12 @@ function sha256(filePath) {
 }
 
 function slugOf(config) {
-    return `${config.fixture}-${config.build}`
+    let slug = `${config.fixture}-${config.build}`
         + `-w${config.workers}-t${config.threads}-h${config.hash}`;
+    if (config.hashPolicy === "clear") slug += "-hashclear";
+    if (config.nodes) slug += `-n${config.nodes}`;
+    if (config.mpv && config.mpv !== 2) slug += `-mp${config.mpv}`;
+    return slug;
 }
 
 function runConfig(config) {
@@ -147,6 +161,9 @@ function runConfig(config) {
                 ...process.env,
                 BENCH_DEPTH: String(depth),
                 BENCH_THREADS: String(config.threads),
+                BENCH_MPV: String(config.mpv || 2),
+                BENCH_NODES: String(config.nodes || 0),
+                BENCH_HASH_POLICY: config.hashPolicy || "keep",
                 BENCH_OUT: outDir,
                 BENCH_ENGINE_SRC: engineSourcePath
             }
@@ -226,6 +243,41 @@ function extractRun(config, result) {
     run.minFinalDepth = Math.min(...finalDepths);
     run.maxFinalDepth = Math.max(...finalDepths);
     run.startupMs = Math.max(0, ...result.startup.map(s => s.ms));
+    // Lane idle accounting: the gap between one position finishing on a lane
+    // and the next one starting on the same lane. Large values mean the lane
+    // was starved of work (queue/claim overhead) or a position's dispatch was
+    // delayed; the tail gap covers time between the last position and the run
+    // end (e.g. a slow final position on another lane).
+    const lanes = new Map();
+    for (const p of result.positions) {
+        if (!lanes.has(p.workerIndex)) lanes.set(p.workerIndex, []);
+        lanes.get(p.workerIndex).push(p);
+    }
+    let idleMs = 0;
+    let maxIdleGapMs = 0;
+    for (const lane of lanes.values()) {
+        lane.sort((a, b) => a.startedMs - b.startedMs);
+        let cursor = 0;
+        for (const p of lane) {
+            const gap = p.startedMs - cursor;
+            if (gap > 0) {
+                idleMs += gap;
+                if (gap > maxIdleGapMs) maxIdleGapMs = gap;
+            }
+            cursor = p.finishedMs;
+        }
+        const tail = (result.elapsedMs || 0) - cursor;
+        if (tail > 0) idleMs += tail;
+    }
+    run.idleMs = Math.round(idleMs);
+    run.maxIdleGapMs = Math.round(maxIdleGapMs);
+    // Peak aggregate engine memory across the run (KB -> MB).
+    if (result.memorySamples && result.memorySamples.length) {
+        run.peakMemoryMB = +Math.max(
+            0,
+            ...result.memorySamples.map(s => (s.totalKB || 0) / 1024)
+        ).toFixed(1);
+    }
     run.engineSourceSHA256 = result.meta && result.meta.engineSourceSHA256;
     run.resultId = result.meta && result.meta.id;
     return run;
@@ -267,6 +319,9 @@ async function main() {
         "pos avg (ms)": run.avgPositionMs,
         "pos p95 (ms)": run.positionMs && run.positionMs.p95,
         "setup+cb (ms)": run.overheadMs ? run.overheadMs.setup + run.overheadMs.callbacks : null,
+        "idle (ms)": run.idleMs,
+        "max idle gap (ms)": run.maxIdleGapMs,
+        "peak mem (MB)": run.peakMemoryMB,
         "info lines": run.infoLines,
         "stored lines": run.storedLines,
         "avg nps": run.avgNps,

@@ -6,7 +6,7 @@ import { StateTreeNode, getNodeChain } from "@domain/types/game/position/StateTr
 import { getTopEngineLine } from "@domain/types/game/position/EngineLine";
 import Engine from "@analysis/lib/engine";
 import getCloudEvaluation from "./cloudEvaluate";
-import { getLogicalCoreCount, resolveEngineSizing } from "./engineSizing";
+import { getDeviceMemoryGB, getLogicalCoreCount, resolveEngineSizing } from "./engineSizing";
 
 interface EvaluateMovesOptions {
     engineVersion: EngineVersion;
@@ -154,7 +154,8 @@ function createGameEvaluator(
         } = options.dynamicSizing
             ? resolveEngineSizing({
                 logicalCores: getLogicalCoreCount(),
-                remainingPositions
+                remainingPositions,
+                deviceMemoryGB: getDeviceMemoryGB()
             })
             : {
                 engineCount: Math.min(
@@ -169,6 +170,19 @@ function createGameEvaluator(
         let stateTreeNodeIndex = Math.max(evaluatedStateCount - 1, 0);
 
         return await new Promise((res, rej) => {
+            // The review settles at most once: the last resting engine
+            // resolves it, an abort or a failed search rejects it, and any
+            // later late settlement (e.g. a line batch that was in flight
+            // when another lane failed) must not re-enter the result.
+            let settled = false;
+
+            function settle(fn: () => void) {
+                if (settled) return;
+
+                settled = true;
+                fn();
+            }
+
             // Bring an engine to a new FEN
             function evaluateNextPosition(engine: Engine) {
                 const currentStateTreeNodeIndex = stateTreeNodeIndex;
@@ -178,7 +192,7 @@ function createGameEvaluator(
                     engine.terminate();
 
                     if (++enginesResting == engineCount)
-                        res(stateTreeNodes);
+                        settle(() => res(stateTreeNodes));
 
                     return;
                 }
@@ -194,6 +208,11 @@ function createGameEvaluator(
                         ? options.engineTimeLimit * 1000
                         : undefined
                 }).then(lines => {
+                    // A batch that resolves after the review already settled
+                    // (aborted / another lane failed) is stale: its lines
+                    // belong to a review nobody is reading any more.
+                    if (settled) return;
+
                     progresses[currentStateTreeNodeIndex] = 1;
                     options.onProgress?.(getProgress());
 
@@ -203,6 +222,15 @@ function createGameEvaluator(
                     ];
 
                     evaluateNextPosition(engine);
+                }).catch(error => {
+                    // A failed search (engine crash, malformed PV, ...) must
+                    // fail the review instead of leaving its lane hanging
+                    // with a rejected promise nobody handles, which would
+                    // stall the whole review forever.
+                    settle(() => {
+                        engines.forEach(laneEngine => laneEngine.terminate());
+                        rej(error);
+                    });
                 });
 
                 stateTreeNodeIndex++;
@@ -211,30 +239,39 @@ function createGameEvaluator(
             // Start engines on first positions
             const engines: Engine[] = [];
 
-            for (let i = 0; i < engineCount; i++) {
-                const engine = new Engine(options.engineVersion);
-                engines.push(engine);
+            if (!controller.signal.aborted) {
+                for (let i = 0; i < engineCount; i++) {
+                    const engine = new Engine(options.engineVersion);
+                    engines.push(engine);
 
-                options.engineConfig?.(engine);
+                    options.engineConfig?.(engine);
 
-                // These options are queued after the constructor's
-                // `uci`/`position` commands and before any `go`, so UCI
-                // command ordering is preserved.
-                engine.setThreadCount(threads);
-                engine.setOption("Hash", String(hashMB));
+                    // These options are queued after the constructor's
+                    // `uci`/`position` commands and before any `go`, so UCI
+                    // command ordering is preserved.
+                    engine.setThreadCount(threads);
+                    engine.setOption("Hash", String(hashMB));
 
-                if (options.verbose) {
-                    engine.onMessage(console.log);
+                    if (options.verbose) {
+                        engine.onMessage(console.log);
+                    }
+
+                    engine.onError(error => settle(() => rej(error)));
+
+                    evaluateNextPosition(engine);
                 }
+            }
 
-                engine.onError(rej);
-
-                evaluateNextPosition(engine);
+            // Cancelled while the cloud prefix was still being collected.
+            if (controller.signal.aborted) {
+                engines.forEach(engine => engine.terminate());
+                settle(() => rej("abort"));
+                return;
             }
 
             controller.signal.addEventListener("abort", () => {
                 engines.forEach(engine => engine.terminate());
-                rej("abort");
+                settle(() => rej("abort"));
             });
         });
     }

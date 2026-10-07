@@ -41,6 +41,13 @@ function RealtimeEngine({
 
     const evaluationDelayRef = useRef<Timeout>();
 
+    // Bumped every time an evaluation is queued. In-flight lines (and the
+    // final batch) of a search that was stopped out from under us can still
+    // arrive after the next evaluation has started; comparing their
+    // generation against the current one lets us drop them instead of
+    // showing — or merging — lines of an older position under the new one.
+    const evaluationGenerationRef = useRef(0);
+
     const position = useMemo(() => {
         const board = new Chess(initialPosition);
         if (!playedUciMoves) return initialPosition;
@@ -110,6 +117,8 @@ function RealtimeEngine({
     async function evaluatePosition() {
         if (!engine) return;
 
+        const generation = evaluationGenerationRef.current;
+
         engine.setPosition(initialPosition, playedUciMoves);
         engine.setLineCount(hydratedConfig.lines);
 
@@ -124,9 +133,18 @@ function RealtimeEngine({
                     && (hydratedConfig.timeLimit * 1000)
                 ),
                 onEngineLine: line => {
+                    // Stale line: a newer evaluation was queued in the
+                    // meantime — it owns the display now.
+                    if (generation != evaluationGenerationRef.current) return;
+
                     setRealtimeEngineLines(prev => [ ...prev, line ]);
                 }
             });
+
+            // Same guard for the final batch: do not merge the stopped
+            // search's lines into a position that is no longer the current
+            // one.
+            if (generation != evaluationGenerationRef.current) return;
 
             onEvaluationComplete?.(lines);
         } catch {
@@ -141,6 +159,10 @@ function RealtimeEngine({
         if (displayedCacheLines) return;
 
         async function queueEvaluation() {
+            // Invalidate any evaluation (and its in-flight lines) that is
+            // still running for the previous position/settings.
+            evaluationGenerationRef.current++;
+
             await engine?.stopEvaluation();
 
             if (evaluationDelayRef.current) {

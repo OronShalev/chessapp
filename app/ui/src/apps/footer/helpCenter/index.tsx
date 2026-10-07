@@ -6,6 +6,7 @@ import HelpCenter from "./pages/HelpCenter";
 
 import "@/i18n";
 import "@/index.css";
+import "@/lib/serviceWorker";
 
 const root = ReactDOM.createRoot(
     document.querySelector(".root")!
