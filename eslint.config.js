@@ -3,7 +3,16 @@ const tsStylistic = require("@stylistic/eslint-plugin-ts");
 
 module.exports = [
     {
-        ignores: ["**/dist/**", "node_modules/**"]
+        // Generated build output (including the Capacitor webview bridge,
+        // which carries lint directives for rules not loaded for plain JS)
+        ignores: [
+            "**/dist/**",
+            "node_modules/**",
+            "android/build/**",
+            "android/app/build/**",
+            "android/.gradle/**",
+            "android/capacitor-cordova-android-plugins/**"
+        ]
     },
     ...tsEslint.config({
         files: [

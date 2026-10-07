@@ -2,50 +2,31 @@ import { StatusCodes } from "http-status-codes";
 import { clone } from "lodash-es";
 
 import AnalysisOptions from "@domain/lib/reporter/types/AnalysisOptions";
-import {
-    GameAnalysis,
-    SerializedGameAnalysis
-} from "@domain/types/game/GameAnalysis";
-import {
-    StateTreeNode,
-    serializeNode,
-    deserializeNode
-} from "@domain/types/game/position/StateTreeNode";
+import { getGameAnalysis } from "@domain/lib/reporter/report";
+import { GameAnalysis } from "@domain/types/game/GameAnalysis";
+import { StateTreeNode } from "@domain/types/game/position/StateTreeNode";
 import APIResponse from "@/types/APIResponse";
 
+/**
+ * Classifies an evaluated state tree as a full game analysis.
+ *
+ * Runs the same pure `getGameAnalysis` reporter pass that the
+ * `/api/analysis/analyse` endpoint wraps, but in-process: that endpoint
+ * does nothing else, and calling it meant shipping the whole tree over the
+ * network — which is impossible in the native (Android) build, where the
+ * app's webview origin has no backend behind it, and which large trees
+ * could also trip the endpoint's 1MB body limit. Locally the result is
+ * identical.
+ */
 export async function analyseStateTree(
     rootNode: StateTreeNode,
     options?: AnalysisOptions
 ): APIResponse<{ gameAnalysis: GameAnalysis }> {
-    const reportURL = "/api/analysis/analyse"
-        + `?brilliant=${String(options?.includeBrilliant)}`
-        + `&critical=${String(options?.includeCritical)}`
-        + `&theory=${String(options?.includeTheory)}`;
-
-    const reportResponse = await fetch(reportURL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-            serializeNode(rootNode)
-        )
-    });
-
-    if (!reportResponse.ok)
-        return { status: reportResponse.status };
-
-    const serializedAnalysis: SerializedGameAnalysis = (
-        await reportResponse.json()
-    );
+    const gameAnalysis = getGameAnalysis(rootNode, options);
 
     return {
-        status: reportResponse.status,
-        gameAnalysis: {
-            ...serializedAnalysis,
-            stateTree: deserializeNode(
-                serializedAnalysis.stateTree,
-                rootNode
-            )
-        }
+        status: StatusCodes.OK,
+        gameAnalysis
     };
 }
 

@@ -51,9 +51,14 @@
         box-sizing: border-box;
         padding: 0 10px;
         position: fixed;
-        bottom: 10px;
+        bottom: calc(10px + env(safe-area-inset-bottom));
         left: 0;
         z-index: 3;
+
+        /* The container is a full-width, bottom-pinned strip: unless it
+        lets touches through, every swipe that starts on it is eaten
+        instead of scrolling the page (the "page is stuck" feeling). */
+        pointer-events: none;
 
         transform: translateY(0);
         transition: transform 0.2s ease;
@@ -63,6 +68,11 @@
     scrolled down; restored when scrolling back up. */
     .traverserContainerHidden {
         transform: translateY(calc(100% + 20px));
+    }
+
+    /* ...while the controls themselves stay tappable. */
+    .traverser {
+        pointer-events: auto;
     }
 }
 
@@ -78,3 +88,5 @@
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
 }
+/* The base (non-media) .traverser rule is defined above; pointer-events
+   for the mobile override sits in the 900px block above as well. */

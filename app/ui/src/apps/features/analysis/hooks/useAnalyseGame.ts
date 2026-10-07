@@ -25,19 +25,33 @@ function useAnalyseGame(
         state => state.setCurrentStateTreeNode
     );
 
-    const setAnalysisStatus = useAnalysisProgressStore(
-        state => state.setAnalysisStatus
-    );
+    const {
+        setAnalysisStatus,
+        setAnalysisError
+    } = useAnalysisProgressStore();
 
     return async () => {
-        const analyseResult = await analyseStateTree(analysisGame.stateTree, {
-            includeBrilliant: settings.classifications.included.brilliant,
-            includeCritical: settings.classifications.included.critical,
-            includeTheory: settings.classifications.included.theory
-        });
+        let analyseResult: Awaited<ReturnType<typeof analyseStateTree>>;
+
+        try {
+            analyseResult = await analyseStateTree(analysisGame.stateTree, {
+                includeBrilliant: settings.classifications.included.brilliant,
+                includeCritical: settings.classifications.included.critical,
+                includeTheory: settings.classifications.included.theory
+            });
+        } catch (err) {
+            // Surface the failure in the progress overlay; otherwise the
+            // status would stay "awaiting analysis" at 100% forever.
+            console.error(err);
+            setAnalysisError(t("analysisError"));
+
+            return;
+        }
 
         // For any errors, display message
         if (analyseResult.status != StatusCodes.OK) {
+            setAnalysisError(t("progressReporter.reportFailed"));
+
             return onAnalysisError?.(
                 t("progressReporter.reportFailed")
             );

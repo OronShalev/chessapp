@@ -13,7 +13,7 @@
 @media (max-width: 500px) {
     .wrapper {
         gap: 0;
-        padding: 0 0 90px;
+        padding: 0 0 calc(90px + env(safe-area-inset-bottom));
     }
 
     .advertisement {
@@ -34,10 +34,11 @@
 
 @media (max-width: 900px) {
     .wrapper {
-        /* The move traverser is pinned to the bottom of the screen (~70px);
-        leave room below the content so the last items can scroll clear of
-        it instead of getting permanently covered. */
-        padding-bottom: 90px;
+        /* The move traverser is pinned to the bottom of the screen (~70px,
+        plus the Android safe-area/gesture inset); leave room below the
+        content so the last items can scroll clear of it instead of
+        getting permanently covered. */
+        padding-bottom: calc(90px + env(safe-area-inset-bottom));
     }
 
     .analysisSection {
