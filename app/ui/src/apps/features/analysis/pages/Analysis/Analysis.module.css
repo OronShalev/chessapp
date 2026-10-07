@@ -13,7 +13,7 @@
 @media (max-width: 500px) {
     .wrapper {
         gap: 0;
-        padding: 0;
+        padding: 0 0 90px;
     }
 
     .advertisement {
@@ -33,6 +33,13 @@
 }
 
 @media (max-width: 900px) {
+    .wrapper {
+        /* The move traverser is pinned to the bottom of the screen (~70px);
+        leave room below the content so the last items can scroll clear of
+        it instead of getting permanently covered. */
+        padding-bottom: 90px;
+    }
+
     .analysisSection {
         flex-direction: column;
         justify-content: start;

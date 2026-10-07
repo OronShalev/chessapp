@@ -8,6 +8,7 @@ import useAnalysisBoardStore from "@analysis/stores/AnalysisBoardStore";
 import useAnalysisTabStore from "@analysis/stores/AnalysisTabStore";
 import ClassifiedMoveCard from "@analysis/components/report/ClassifiedMoveCard";
 import StateTreeTraverser from "@/components/chess/StateTreeTraverser";
+import useAutoHideOnScroll from "@/hooks/useAutoHideOnScroll";
 
 import TabBar from "./TabBar";
 import AnalysisProgress from "./AnalysisProgress";
@@ -39,7 +40,11 @@ function AnalysisPanel({
     );
 
     const { activeTab } = useAnalysisTabStore();
-    
+
+    // On mobile the traverser is pinned to the bottom of the screen; slide
+    // it away while the page scrolls down so it doesn't cover the content.
+    const traverserVisible = useAutoHideOnScroll();
+
     return <div
         className={`${styles.wrapper} ${className}`}
         style={style}
@@ -78,7 +83,10 @@ function AnalysisPanel({
             }
         </div>
 
-        <div className={styles.traverserContainer}>
+        <div className={traverserVisible
+            ? styles.traverserContainer
+            : `${styles.traverserContainer} ${styles.traverserContainerHidden}`
+        }>
             <StateTreeTraverser className={styles.traverser} />
         </div>
     </div>;

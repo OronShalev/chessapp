@@ -53,6 +53,16 @@
         position: fixed;
         bottom: 10px;
         left: 0;
+        z-index: 3;
+
+        transform: translateY(0);
+        transition: transform 0.2s ease;
+    }
+
+    /* Slides the pinned traverser below the viewport while the page is
+    scrolled down; restored when scrolling back up. */
+    .traverserContainerHidden {
+        transform: translateY(calc(100% + 20px));
     }
 }
 
