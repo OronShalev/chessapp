@@ -1,0 +1,8 @@
+{
+    "appId": "com.wintrchess.app",
+    "appName": "WintrChess",
+    "webDir": "android-web/dist",
+    "server": {
+        "androidScheme": "https"
+    }
+}

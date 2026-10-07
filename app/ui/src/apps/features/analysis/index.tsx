@@ -24,6 +24,10 @@ function App() {
             showFooter={false}
         >
             <Routes>
+                {/* The web server serves this page at /analysis. In the
+                    mobile app, the same page is the webview origin root
+                    (/), so both paths must match. */}
+                <Route path="/" element={<Analysis/>} />
                 <Route path="/analysis" element={<Analysis/>} />
             </Routes>
         </PageWrapper>

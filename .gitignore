@@ -17,3 +17,15 @@ scripts/review-benchmarks/round3-baseline-extended/
 scripts/review-benchmarks/round3-improved/
 scripts/review-benchmarks/snapshots/
 scripts/review-benchmarks/*.log
+
+# Desktop / Android packaging
+releases/
+android/
+android-web/
+.toolchain/
+desktop/build/
+
+# Build / smoke-test scratch
+tmp/
+*.log
+scripts/smoke-dom-result.json

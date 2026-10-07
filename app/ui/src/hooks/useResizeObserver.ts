@@ -19,6 +19,10 @@ function useResizeObserver<ElementType extends HTMLElement>(
     useEffect(() => {
         if (!elementRef.current) return;
 
+        // Very old webviews (e.g. Android 7 without an updatable system
+        // webview) predate ResizeObserver; fall back to the default sizes.
+        if (typeof ResizeObserver === "undefined") return;
+
         const observer = new ResizeObserver(entries => {
             const element = entries[0].target as ElementType;
 

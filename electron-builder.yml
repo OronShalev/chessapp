@@ -1,0 +1,41 @@
+# WintrChess desktop build (Windows)
+appId: com.wintrchess.desktop
+productName: WintrChess
+copyright: Copyright (c) 2026 WintrChess
+
+directories:
+    output: releases
+    buildResources: desktop/build
+
+# The app is the compiled server (app/http/dist), the built client
+# (app/ui/dist) and the static assets (public), plus the shell itself.
+# `package.json` and the production `node_modules` are always included.
+files:
+    - desktop/**/*
+    - app/http/package.json
+    - app/http/dist/**/*
+    - app/ui/dist/**/*
+    - public/**/*
+
+# Static file serving and the WASM engine binaries stay on the real
+# filesystem; asar would only complicate things here.
+asar: false
+
+# All dependencies are pure JavaScript; no native modules to rebuild.
+npmRebuild: false
+
+win:
+    icon: desktop/build/icon.ico
+    target:
+        - target: nsis
+          arch: [x64]
+    artifactName: WintrChess-Setup-${version}-x64.${ext}
+
+nsis:
+    oneClick: false
+    allowToChangeInstallationDirectory: true
+    createDesktopShortcut: true
+    createStartMenuShortcut: true
+    shortcutName: WintrChess
+    runAfterFinish: true
+    deleteAppDataOnUninstall: false
