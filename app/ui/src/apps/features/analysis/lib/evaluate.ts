@@ -6,10 +6,24 @@ import { StateTreeNode, getNodeChain } from "@domain/types/game/position/StateTr
 import { getTopEngineLine } from "@domain/types/game/position/EngineLine";
 import Engine from "@analysis/lib/engine";
 import getCloudEvaluation from "./cloudEvaluate";
+import { getLogicalCoreCount, resolveEngineSizing } from "./engineSizing";
 
 interface EvaluateMovesOptions {
     engineVersion: EngineVersion;
+    /**
+     * Upper bound on the number of local engines. When `dynamicSizing` is
+     * enabled this is the cap the sizing is resolved against; otherwise it
+     * is the exact engine count.
+     */
     maxEngineCount?: number;
+    /**
+     * Derive the engine count, threads per engine, and hash size from the
+     * machine's logical processor count, so the review saturates the CPU
+     * without oversubscribing it.
+     */
+    dynamicSizing?: boolean;
+    /** Threads per engine, used when `dynamicSizing` is disabled. */
+    threads?: number;
     engineDepth: number;
     engineTimeLimit?: number;
     cloudEngineLines: number;
@@ -39,47 +53,102 @@ function createGameEvaluator(
     }
 
     async function evaluator(): Promise<StateTreeNode[]> {
-        // Apply cloud evaluations where possible
-        for (const stateTreeNode of stateTreeNodes) {
+        // Apply cloud evaluations where possible. Requests for the
+        // opening prefix are issued in small concurrent batches so the
+        // cloud phase takes one round-trip per batch instead of one per
+        // position. The first position that is not in the cloud (or
+        // returns insufficient data) ends the prefix, and everything from
+        // there on is evaluated locally.
+        const CLOUD_BATCH_SIZE = 4;
+
+        for (
+            let batchStart = 0;
+            batchStart < stateTreeNodes.length;
+            batchStart += CLOUD_BATCH_SIZE
+        ) {
             if (controller.signal.aborted) break;
 
-            try {
-                var cloudEngineLines = await getCloudEvaluation(
-                    stateTreeNode.state.fen, options.cloudEngineLines
-                );
-            } catch {
-                break;
+            const batchEnd = Math.min(
+                batchStart + CLOUD_BATCH_SIZE,
+                stateTreeNodes.length
+            );
+
+            const cloudResults = await Promise.all(
+                stateTreeNodes.slice(batchStart, batchEnd).map(async node => {
+                    try {
+                        return await getCloudEvaluation(
+                            node.state.fen, options.cloudEngineLines
+                        );
+                    } catch {
+                        return null;
+                    }
+                })
+            );
+
+            let prefixBroken = false;
+
+            for (let i = batchStart; i < batchEnd; i++) {
+                const cloudEngineLines = cloudResults[i - batchStart];
+                const topCloudLine = cloudEngineLines
+                    ? getTopEngineLine(cloudEngineLines)
+                    : undefined;
+
+                if (
+                    !cloudEngineLines
+                    || !topCloudLine
+                    || topCloudLine.depth < options.engineDepth
+                    || cloudEngineLines.length < options.cloudEngineLines
+                ) {
+                    // This position has no usable cloud evaluation: stop
+                    // the cloud phase, the local engines pick up here.
+                    prefixBroken = true;
+                    break;
+                }
+
+                stateTreeNodes[i].state.engineLines = [
+                    ...stateTreeNodes[i].state.engineLines,
+                    ...cloudEngineLines
+                ];
+
+                progresses[i] = 1;
+                options.onProgress?.(getProgress());
             }
 
-            const topCloudLine = getTopEngineLine(cloudEngineLines);
-            if (!topCloudLine) break;
-
-            if (topCloudLine.depth < options.engineDepth) break;
-            if (cloudEngineLines.length < options.cloudEngineLines) break;
-
-            stateTreeNode.state.engineLines = [
-                ...stateTreeNode.state.engineLines,
-                ...cloudEngineLines
-            ];
-
-            progresses.push(1);
-            options.onProgress?.(getProgress());
+            if (prefixBroken) break;
         }
 
         // Locally evaluate remaining positions
 
-        // Maximum engine count or however many are needed for each
-        // remaining position, add 1 for cutoff for last cloud evaluated state
+        // Number of positions covered by the cloud prefix above
         const evaluatedStateCount = stateTreeNodes.filter(
             node => node.state.engineLines.some(
                 line => line.source == EngineVersion.LICHESS_CLOUD
             )
         ).length;
 
-        const engineCount = Math.min(
-            options.maxEngineCount || 1,
-            (stateTreeNodes.length - evaluatedStateCount) + 1
-        );
+        // +1: the last cloud-evaluated position is re-evaluated locally
+        const remainingPositions =
+            (stateTreeNodes.length - evaluatedStateCount) + 1;
+
+        // How many engines to run and how many threads each gets. With
+        // dynamic sizing these are derived from the machine's logical
+        // processor count (one engine per core), so the review saturates
+        // the CPU without oversubscribing it.
+        const {
+            engineCount, threads, hashMB
+        } = options.dynamicSizing
+            ? resolveEngineSizing({
+                logicalCores: getLogicalCoreCount(),
+                remainingPositions
+            })
+            : {
+                engineCount: Math.min(
+                    options.maxEngineCount || 1,
+                    remainingPositions
+                ),
+                threads: options.threads || 1,
+                hashMB: 16
+            };
 
         let enginesResting = 0;
         let stateTreeNodeIndex = Math.max(evaluatedStateCount - 1, 0);
@@ -133,6 +202,12 @@ function createGameEvaluator(
                 engines.push(engine);
 
                 options.engineConfig?.(engine);
+
+                // These options are queued after the constructor's
+                // `uci`/`position` commands and before any `go`, so UCI
+                // command ordering is preserved.
+                engine.setThreadCount(threads);
+                engine.setOption("Hash", String(hashMB));
 
                 if (options.verbose) {
                     engine.onMessage(console.log);

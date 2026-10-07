@@ -24,6 +24,7 @@ const settingsSchema = z.object({
                 z.literal(8),
                 z.literal(16)
             ]),
+            dynamicEngineCount: z.boolean(),
             suggestionArrows: z.enum(EngineArrowType)
         }),
         classifications: z.object({
@@ -60,6 +61,7 @@ export const defaultSettings: Settings = {
             timeLimit: 1,
             threads: 4,
             engineCount: 4,
+            dynamicEngineCount: true,
             suggestionArrows: EngineArrowType.DISABLED
         },
         classifications: {

@@ -75,6 +75,10 @@ class Engine {
 
     terminate() {
         this.worker.postMessage("quit");
+
+        // Hard-kill the worker so its (WASM) memory is released
+        // immediately, instead of waiting for the engine to exit itself.
+        this.worker.terminate();
     }
 
     setOption(option: string, value: string) {
@@ -124,6 +128,10 @@ class Engine {
         timeLimit?: number;
         onEngineLine?: (line: EngineLine) => void;
     }): Promise<EngineLine[]> {
+        // At most one entry per MultiPV index: each new info line replaces
+        // the older (shallower) line in the same slot, so the returned
+        // batch holds only the final lines. The onEngineLine callback still
+        // receives every line for live display.
         const engineLines: EngineLine[] = [];
 
         const maxTimeArgument = options.timeLimit
@@ -175,7 +183,7 @@ class Engine {
                     moveSans.push(board.move(moveUci).san);
                 }
 
-                // Remove old duplicate line and add new one
+                // Replace any older line for this MultiPV index
                 const newEngineLine: EngineLine = {
                     depth: depth,
                     index: index,
@@ -190,7 +198,7 @@ class Engine {
                     }))
                 };
 
-                engineLines.push(newEngineLine);
+                engineLines[index - 1] = newEngineLine;
                 options.onEngineLine?.(newEngineLine);
             }
         );

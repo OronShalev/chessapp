@@ -192,6 +192,29 @@ function EngineOptionsArea() {
         </div>
 
         <div className={styles.setting}>
+            <span data-tooltip-id="settings-engine-dynamic-count">
+                {t("settings.engine.dynamicEngineCount")}
+            </span>
+
+            <Tooltip
+                id="settings-engine-dynamic-count"
+                content={t("settings.engine.descriptions.dynamicEngineCount")}
+                delayShow={500}
+                className={styles.settingDescription}
+            />
+
+            <SwitchSetting
+                defaultChecked={settings.analysis.engine.dynamicEngineCount}
+                onChange={checked => (
+                    setSettings(draft => {
+                        draft.analysis.engine.dynamicEngineCount = checked;
+                        return draft;
+                    })
+                )}
+            />
+        </div>
+
+        <div className={styles.setting}>
             <span data-tooltip-id="settings-engine-time-limit">
                 {t("settings.engine.timeLimit")}
             </span>

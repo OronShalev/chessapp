@@ -13,6 +13,7 @@
                 "lines": "The number of variations that the engine will consider. Must be at least 2 for some classifications.",
                 "timeLimit": "The maximum amount of time the engine is allowed to analyse a single move.",
                 "engineCount": "The number of engines to run in parallel. Choose 1, 2, 4, 8 or 16. Each engine analyses a different move, so more engines finish the analysis faster.",
+                "dynamicEngineCount": "Automatically picks the number of parallel engines and the threads each engine uses from this device's CPU cores, for the fastest review possible without overloading the machine. The engine count above acts as the maximum.",
                 "suggestionArrows": {
                     "disabled": "Disabled: Do not show engine arrows",
                     "continuation": "Top Continuation: Show an arrow for the top move in this position",
@@ -25,6 +26,7 @@
             "lines": "Number of Lines",
             "linesWarning": "At least 2 lines are required for Critical and some Brilliant moves.",
             "engineCount": "Number of Engines",
+            "dynamicEngineCount": "Adaptive Engine Count",
             "timeLimit": "Time Limit (seconds)",
             "suggestionArrows": {
                 "title": "Suggestion Arrows",

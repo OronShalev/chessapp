@@ -34,9 +34,10 @@ function useEvaluateGame() {
                 ? settings.timeLimit : undefined,
             cloudEngineLines: settings.lines,
             maxEngineCount: settings.engineCount,
+            dynamicSizing: settings.dynamicEngineCount,
+            threads: settings.threads,
             engineConfig: engine => {
                 engine.setLineCount(settings.lines);
-                engine.setThreadCount(settings.threads);
             },
             onProgress: progress => {
                 setEvaluationProgress(progress);
